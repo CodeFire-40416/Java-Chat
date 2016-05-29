@@ -10,8 +10,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -33,7 +31,7 @@ public class ChatClient {
      * @param recipient to send a message.
      * @param message message sent.
      */
-    public void sendMessage(String recipient, String message) {
+    public void sendMessage(String recipient, String message) throws IOException {
         try (Socket socketClient = new Socket()) {
             // Configure Socket
             socketClient.setSoTimeout(1000);
@@ -63,8 +61,6 @@ public class ChatClient {
             } else {
                 System.out.println("ERROR: While sending message.");
             }
-        } catch (IOException ex) {
-            Logger.getLogger(ChatClient.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 }

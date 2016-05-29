@@ -64,7 +64,7 @@ public class Main {
                             
                             // создаем клиента для сервера
                             ChatClient chatClient = new ChatClient(SERVER_ADDRESS, SERVER_PORT); // 5781
-                            chatClient.sendMessage(recipient, message);
+//                            chatClient.sendMessage(recipient, message);
                             
                             break;
                         default:
