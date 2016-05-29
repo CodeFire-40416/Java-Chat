@@ -17,46 +17,52 @@ import java.util.logging.Logger;
  *
  * @author Igor Gayvan
  */
-public class ChatClient implements Runnable {
+public class ChatClient {
 
     private String serverAddress;
     private int serverPort;
 
-    private Socket socketClient;
-    private DataOutputStream dos;
-    private DataInputStream dis;
-
     public ChatClient(String serverAddress, int serverPort) {
         this.serverAddress = serverAddress;
         this.serverPort = serverPort;
-
-        try {
-            socketClient = new Socket();
-            socketClient.setSoTimeout(1000);
-            System.out.println("Connecting...");
-
-            InetSocketAddress isa = new InetSocketAddress(serverAddress, serverPort);
-            socketClient.connect(isa);
-            System.out.println("Connect establish");
-
-            dos = new DataOutputStream(socketClient.getOutputStream());
-            dis = new DataInputStream(socketClient.getInputStream());
-        } catch (IOException ex) {
-            Logger.getLogger(ChatClient.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
 
-    @Override
-    public void run() {
-        try {
-            dos.writeUTF("MSG");
-            dos.writeUTF("127.0.0.1"); ///*String.valueOf(socketClient.getLocalSocketAddress()*/));
-            dos.writeUTF("Hello");
+    /**
+     * Sending message to server.
+     *
+     * @param recipient to send a message.
+     * @param message message sent.
+     */
+    public void sendMessage(String recipient, String message) {
+        try (Socket socketClient = new Socket()) {
+            // Configure Socket
+            socketClient.setSoTimeout(1000);
 
+            // Connecting to server
+            System.out.println("Connecting...");
+            socketClient.connect(new InetSocketAddress(serverAddress, serverPort));
+            System.out.println("Connect establish");
+
+            // Get Socket IO.
+            DataOutputStream dos = new DataOutputStream(socketClient.getOutputStream());
+            DataInputStream dis = new DataInputStream(socketClient.getInputStream());
+
+            // Send command
+            dos.writeUTF("MSG");
+            dos.flush();
+            // Send message
+            dos.writeUTF(recipient); ///*String.valueOf(socketClient.getLocalSocketAddress()*/));
+            dos.writeUTF(message);
             dos.flush();
 
+            // Receive response
             String response = dis.readUTF();
-            System.out.println(response);
+
+            if ("OK".equals(response)) {
+                System.out.println("Message was sent.");
+            } else {
+                System.out.println("ERROR: While sending message.");
+            }
         } catch (IOException ex) {
             Logger.getLogger(ChatClient.class.getName()).log(Level.SEVERE, null, ex);
         }
