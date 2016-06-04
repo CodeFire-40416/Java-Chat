@@ -6,39 +6,103 @@
 package chat;
 
 import chat.client.ChatClient;
+import chat.server.ChatMessageListener;
 import chat.server.ChatServer;
+import java.awt.Color;
 import java.awt.event.KeyEvent;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JTextPane;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
+import javax.swing.text.StyledDocument;
 
 /**
  *
  * @author human
  */
-public class ChatFrame extends javax.swing.JFrame {
+public class ChatFrame extends javax.swing.JFrame implements ChatMessageListener {
 
     private static final String SERVER_ADDRESS = "192.168.1.99";
     private static final int SERVER_PORT = 5781;
     private static final int CLIENT_SERVER_PORT = 5782;
 
+    private static final SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy hh:mm:ss");
+
     private ChatServer chatServer;
+
+    private DefaultStyledDocument styledDocument;
+    private Style headerOutcomeStyle;
+    private Style headerIncomeStyle;
+    private Style messageOutcomeStyle;
+    private Style messageIncomeStyle;
 
     /**
      * Creates new form ChatFrame
      */
     public ChatFrame() {
         initComponents();
+
+        StyleContext sc = new StyleContext();
+
+        styledDocument = new DefaultStyledDocument(sc);
         
+        // OUTGOING
+        headerOutcomeStyle = sc.addStyle("headerOutcomeStyle", sc.getStyle(StyleContext.DEFAULT_STYLE));
+        StyleConstants.setLeftIndent(headerOutcomeStyle, 10.f);
+        StyleConstants.setAlignment(headerOutcomeStyle, StyleConstants.ALIGN_LEFT);
+        StyleConstants.setForeground(headerOutcomeStyle, Color.decode("#887766"));
+
+        messageOutcomeStyle = sc.addStyle("messageOutcomeStyle", sc.getStyle(StyleContext.DEFAULT_STYLE));
+        StyleConstants.setLeftIndent(messageOutcomeStyle, 10.f);
+        StyleConstants.setAlignment(messageOutcomeStyle, StyleConstants.ALIGN_LEFT);
+        
+        // INCOME
+        headerIncomeStyle = sc.addStyle("headerIncomeStyle", sc.getStyle(StyleContext.DEFAULT_STYLE));
+        StyleConstants.setRightIndent(headerIncomeStyle, 10.f);
+        StyleConstants.setAlignment(headerIncomeStyle, StyleConstants.ALIGN_RIGHT);
+        StyleConstants.setForeground(headerIncomeStyle, Color.decode("#667788"));
+
+        messageIncomeStyle = sc.addStyle("messageIncomeStyle", sc.getStyle(StyleContext.DEFAULT_STYLE));
+        StyleConstants.setRightIndent(messageIncomeStyle, 10.f);
+        StyleConstants.setAlignment(messageIncomeStyle, StyleConstants.ALIGN_RIGHT);
+        
+        jtaChatHistory.setStyledDocument(styledDocument);
+        jtaChatHistory.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+               jtaChatHistory.getCaret().setDot(jtaChatHistory.getText().length());
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+               jtaChatHistory.getCaret().setDot(jtaChatHistory.getText().length());
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+               jtaChatHistory.getCaret().setDot(jtaChatHistory.getText().length());
+            }
+        });
+
         jtaChatMessage.requestFocus();
 
         try {
             chatServer = new ChatServer(CLIENT_SERVER_PORT); // 5782
+            chatServer.addChatMessageListener(this); // Add frame as listener
             new Thread(chatServer).start();
         } catch (IOException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(ChatFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
         // HACK
         setLocationRelativeTo(null);
     }
@@ -51,22 +115,16 @@ public class ChatFrame extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jtaChatHistory = new javax.swing.JTextArea();
         jtfIPAddress = new javax.swing.JTextField();
         jLabel1 = new javax.swing.JLabel();
         jScrollPane2 = new javax.swing.JScrollPane();
         jtaChatMessage = new javax.swing.JTextArea();
         jbSendMessage = new javax.swing.JButton();
         jlStatusMessage = new javax.swing.JLabel();
+        jScrollPane3 = new javax.swing.JScrollPane();
+        jtaChatHistory = new javax.swing.JTextPane();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        jtaChatHistory.setEditable(false);
-        jtaChatHistory.setColumns(20);
-        jtaChatHistory.setRows(14);
-        jtaChatHistory.setFocusable(false);
-        jScrollPane1.setViewportView(jtaChatHistory);
 
         jtfIPAddress.setText("192.168.1.");
 
@@ -90,6 +148,8 @@ public class ChatFrame extends javax.swing.JFrame {
 
         jlStatusMessage.setText(" ");
 
+        jScrollPane3.setViewportView(jtaChatHistory);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -97,8 +157,8 @@ public class ChatFrame extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 591, Short.MAX_VALUE)
+                    .addComponent(jScrollPane3)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, 591, Short.MAX_VALUE)
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addComponent(jLabel1)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -113,7 +173,7 @@ public class ChatFrame extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, 228, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jtfIPAddress, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -134,16 +194,19 @@ public class ChatFrame extends javax.swing.JFrame {
 
         String recipient = jtfIPAddress.getText();
         String message = jtaChatMessage.getText();
-        
+
         if (message.isEmpty()) {
             jlStatusMessage.setText("Enter some message please before...");
             return;
         }
-        
+
         ChatClient chatClient = new ChatClient(SERVER_ADDRESS, SERVER_PORT); // 5781
+
         try {
+            printHistory("ME", message, new Date(), true);
+
             chatClient.sendMessage(recipient, message);
-            
+
             jtaChatMessage.setText(null);
         } catch (IOException ex) {
             jlStatusMessage.setText(ex.getMessage());
@@ -152,14 +215,37 @@ public class ChatFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_jbSendMessageActionPerformed
 
     private void jtaChatMessageKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jtaChatMessageKeyPressed
-        
+
         if (evt.getKeyCode() == KeyEvent.VK_ENTER && evt.isControlDown()) {
             evt.consume();
-            
+
             jbSendMessageActionPerformed(null);
         }
-        
+
     }//GEN-LAST:event_jtaChatMessageKeyPressed
+
+    private void printHistory(String address, String message, Date timestamp, boolean outcome) {
+        int offset = jtaChatHistory.getText().length();
+
+        styledDocument.setLogicalStyle(offset, outcome ? headerOutcomeStyle : headerIncomeStyle);
+        try {
+            styledDocument.insertString(offset, String.format("%s [%s]:\n", address, sdf.format(timestamp)), outcome ? headerOutcomeStyle : headerIncomeStyle);
+        } catch (BadLocationException ex) {
+            Logger.getLogger(ChatFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        offset = jtaChatHistory.getText().length();
+
+        styledDocument.setLogicalStyle(offset, outcome ? messageOutcomeStyle : headerIncomeStyle);
+        try {
+            styledDocument.insertString(offset, String.format("  %s\n\n", message), outcome ? messageOutcomeStyle : headerIncomeStyle);
+        } catch (BadLocationException ex) {
+            Logger.getLogger(ChatFrame.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        
+//        styledDocument.dump(System.out);
+    }
 
     /**
      * @param args the command line arguments
@@ -175,12 +261,17 @@ public class ChatFrame extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JButton jbSendMessage;
     private javax.swing.JLabel jlStatusMessage;
-    private javax.swing.JTextArea jtaChatHistory;
+    private javax.swing.JTextPane jtaChatHistory;
     private javax.swing.JTextArea jtaChatMessage;
     private javax.swing.JTextField jtfIPAddress;
     // End of variables declaration//GEN-END:variables
+
+    @Override
+    public void onMessage(String address, String message, Date timestamp) {
+        printHistory(address, message, timestamp, false);
+    }
 }

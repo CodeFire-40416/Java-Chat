@@ -11,6 +11,9 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,11 +28,19 @@ public class ChatServer implements Runnable {
     private int port;
     private ServerSocket serverSocket;
     private boolean listen;
+    
+    private List<ChatMessageListener> chatMessageListeners;
 
     public ChatServer(int port) throws IOException {
         this.port = port;
         this.serverSocket = new ServerSocket(port);
         this.serverSocket.setSoTimeout(SERVER_TIMEOUT);
+        
+        this.chatMessageListeners = new ArrayList<>();
+    }
+    
+    public boolean addChatMessageListener(ChatMessageListener chatMessageListener) {
+        return chatMessageListeners.add(chatMessageListener);
     }
 
     @Override
@@ -51,7 +62,7 @@ public class ChatServer implements Runnable {
                 DataInputStream dis = new DataInputStream(accept.getInputStream());
                 DataOutputStream dos = new DataOutputStream(accept.getOutputStream());
 
-                commandHandler(clientAddress, dis, dos, accept.getPort());
+                commandHandler(dis, dos, accept.getPort());
             } catch (SocketTimeoutException ex) {
                 // NOOP
             } catch (IOException ex) {
@@ -67,7 +78,7 @@ public class ChatServer implements Runnable {
      * @param dos output stream.
      * @throws IOException
      */
-    public void commandHandler(String address, DataInputStream dis, DataOutputStream dos, int clientPort) throws IOException {
+    public void commandHandler(DataInputStream dis, DataOutputStream dos, int clientPort) throws IOException {
         // WORKING WITH SOCKET
         String command = dis.readUTF();
         System.out.println("COMMAND: " + command);
@@ -77,7 +88,7 @@ public class ChatServer implements Runnable {
                 pingHandler(dos);
                 break;
             case "MSG":
-                messageHandler(address, dis, dos, clientPort);
+                messageHandler(dis, dos, clientPort);
                 break;
             default:
                 defaultHandler(dos);
@@ -90,33 +101,16 @@ public class ChatServer implements Runnable {
         dos.flush();
     }
 
-    public void messageHandler(String sender, DataInputStream dis, DataOutputStream dos, int clientPort) throws IOException {
-        String recipient = dis.readUTF();
+    public void messageHandler(DataInputStream dis, DataOutputStream dos, int clientPort) throws IOException {
+        String sender = dis.readUTF();
         String message = dis.readUTF();
-
-        System.out.printf("  Address: %s\n  Message: %s\n", recipient, message);
-
-        boolean success = true;
-
-//        try (Socket client = new Socket(recipient, 5782)) {
-//            DataOutputStream client_dos = new DataOutputStream(client.getOutputStream());
-//            DataInputStream client_dis = new DataInputStream(client.getInputStream());
-//
-//            client_dos.writeUTF("MSG");
-//            client_dos.flush();
-//            client_dos.writeUTF(sender);
-//            client_dos.flush();
-//            client_dos.writeUTF(message);
-//            client_dos.flush();
-//
-//            String response = client_dis.readUTF();
-//
-//            if ("OK".equals(response)) {
-//                success = true;
-//            }
-//        }
-
-        dos.writeUTF(success ? "OK" : "ERROR:While sending message.");
+        Date timestamp = new Date();
+        
+        for (ChatMessageListener chatMessageListener : chatMessageListeners) {
+            chatMessageListener.onMessage(sender, message, timestamp);
+        }
+        
+        dos.writeUTF("OK");
         dos.flush();
     }
 
